@@ -1,11 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
 <head>
   <meta charset="UTF-8">
-  <title>Upload Form</title>
+  <title>فرم آپلود</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, select, button { margin: 5px 0; padding: 5px; width: 300px; }
+    progress { width: 300px; height: 20px; margin-top: 10px; }
+  </style>
 </head>
 <body>
-<h2>فرم ثبت نام</h2>
+
+<h2>فرم ثبت نام و آپلود فایل</h2>
+
 <input id="firstName" placeholder="نام"><br>
 <input id="lastName" placeholder="نام خانوادگی"><br>
 
@@ -24,13 +32,122 @@
 فایل 2: <input type="file" id="file2"><br>
 
 <br>
+<button id="loginBtn">ورود با گوگل</button>
 <button id="submitBtn">ارسال</button>
 
-<progress id="p1" value="0" max="100"></progress>
+<progress id="p1" value="0" max="100"></progress><br>
 <progress id="p2" value="0" max="100"></progress>
 
 <script>
-  // اینجا بعداً کد JS آپلود مستقیم و progress قرار می‌گیرد
+  // ===============================
+  // تنظیم Client ID و توکن
+  // ===============================
+  const CLIENT_ID = "751901678561-9u9o8enrtkb0uikbl409dsj82p22t8b6.apps.googleusercontent.com";
+  let accessToken = "";
+
+  // ===============================
+  // ورود با گوگل
+  // ===============================
+  function initGoogleLogin() {
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/drive.file",
+      callback: (response) => {
+        accessToken = response.access_token;
+        alert("ورود موفق بود!");
+      }
+    });
+
+    tokenClient.requestAccessToken();
+  }
+
+  document.getElementById("loginBtn").onclick = initGoogleLogin;
+
+  // ===============================
+  // ساخت Session برای Resumable Upload
+  // ===============================
+  async function createUploadSession(file) {
+    const metadata = {
+      name: file.name,
+      mimeType: file.type
+    };
+
+    const res = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + accessToken,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(metadata)
+      }
+    );
+
+    return res.headers.get("Location");
+  }
+
+  // ===============================
+  // آپلود فایل
+  // ===============================
+  async function uploadFile(file, sessionUrl, progressCallback) {
+    const chunkSize = 1024 * 1024; // 1MB
+    let offset = 0;
+
+    while (offset < file.size) {
+      const chunk = file.slice(offset, offset + chunkSize);
+
+      await fetch(sessionUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${file.size}`
+        },
+        body: chunk
+      });
+
+      offset += chunk.size;
+
+      if (progressCallback) {
+        progressCallback(Math.round((offset / file.size) * 100));
+      }
+    }
+  }
+
+  function setProgress(id, value) {
+    document.getElementById(id).value = value;
+  }
+
+  // ===============================
+  // اتصال به دکمه ارسال
+  // ===============================
+  document.getElementById("submitBtn").onclick = async function () {
+    if (!accessToken) {
+      alert("لطفاً ابتدا با گوگل وارد شوید");
+      return;
+    }
+
+    const file1 = document.getElementById("file1").files[0];
+    const file2 = document.getElementById("file2").files[0];
+
+    if (!file1 || !file2) {
+      alert("لطفاً هر دو فایل را انتخاب کنید");
+      return;
+    }
+
+    try {
+      const session1 = await createUploadSession(file1);
+      const session2 = await createUploadSession(file2);
+
+      await uploadFile(file1, session1, (p) => setProgress("p1", p));
+      await uploadFile(file2, session2, (p) => setProgress("p2", p));
+
+      alert("آپلود کامل شد!");
+    } catch (err) {
+      console.error(err);
+      alert("خطا در آپلود فایل‌ها");
+    }
+  };
+
 </script>
 
 </body>
