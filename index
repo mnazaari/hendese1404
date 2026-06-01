@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Form</title>
+</head>
+<body>
+<h2>فرم ثبت نام</h2>
+<input id="firstName" placeholder="نام"><br>
+<input id="lastName" placeholder="نام خانوادگی"><br>
+
+<select id="className">
+  <option>کلاس 1</option>
+  <option>کلاس 2</option>
+  <option>کلاس 3</option>
+  <option>کلاس 4</option>
+  <option>کلاس 5</option>
+</select><br>
+
+<input id="email" placeholder="ایمیل (اختیاری)"><br>
+<input id="mobile" placeholder="موبایل (اختیاری)"><br>
+
+فایل 1: <input type="file" id="file1"><br>
+فایل 2: <input type="file" id="file2"><br>
+
+<br>
+<button id="submitBtn">ارسال</button>
+
+<progress id="p1" value="0" max="100"></progress>
+<progress id="p2" value="0" max="100"></progress>
+
+<script>
+  // اینجا بعداً کد JS آپلود مستقیم و progress قرار می‌گیرد
+</script>
+
+</body>
+</html>
